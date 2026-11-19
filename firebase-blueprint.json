@@ -1,0 +1,325 @@
+{
+  "entities": {
+    "UserPrivateProfile": {
+      "title": "User Private Profile",
+      "description": "Private school staff profile containing PII isolated under users/{userId}/private/profile.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Firebase Auth UID matching the document owner.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Verified user email address.",
+          "minLength": 3,
+          "maxLength": 254,
+          "pattern": "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Display name of the school administrator or teacher.",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "schoolName": {
+          "type": "string",
+          "description": "Name of the primary school.",
+          "minLength": 0,
+          "maxLength": 150
+        },
+        "academicYear": {
+          "type": "string",
+          "description": "Active academic year in YYYY-YYYY format.",
+          "minLength": 9,
+          "maxLength": 20,
+          "pattern": "^[0-9]{4}-[0-9]{4}$"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of profile creation."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of last profile update."
+        }
+      },
+      "required": ["uid", "email", "displayName", "schoolName", "academicYear", "createdAt", "updatedAt"]
+    },
+    "EnrollmentReport": {
+      "title": "Enrollment Report",
+      "description": "Parent metadata document for Table 2.(k2) Student Enrollment by Age and Grade.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "academicYear": {
+          "type": "string",
+          "minLength": 9,
+          "maxLength": 20,
+          "pattern": "^[0-9]{4}-[0-9]{4}$"
+        },
+        "schoolName": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 150
+        },
+        "rowCount": {
+          "type": "integer",
+          "description": "Fixed number of age rows (10)."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["ownerId", "academicYear", "schoolName", "rowCount", "createdAt", "updatedAt"]
+    },
+    "EnrollmentAgeRow": {
+      "title": "Enrollment Age Row",
+      "description": "Counts of new, promoted, and repeating students for a single age bracket across Grades 1-6.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "reportId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ageId": {
+          "type": "string",
+          "enum": ["age_6", "age_7", "age_8", "age_9", "age_10", "age_11", "age_12", "age_13", "age_14", "age_15plus"]
+        },
+        "g1_new_total": { "type": "integer" },
+        "g1_new_female": { "type": "integer" },
+        "g1_repeat_total": { "type": "integer" },
+        "g1_repeat_female": { "type": "integer" },
+        "g2_promote_total": { "type": "integer" },
+        "g2_promote_female": { "type": "integer" },
+        "g2_repeat_total": { "type": "integer" },
+        "g2_repeat_female": { "type": "integer" },
+        "g3_promote_total": { "type": "integer" },
+        "g3_promote_female": { "type": "integer" },
+        "g3_repeat_total": { "type": "integer" },
+        "g3_repeat_female": { "type": "integer" },
+        "g4_promote_total": { "type": "integer" },
+        "g4_promote_female": { "type": "integer" },
+        "g4_repeat_total": { "type": "integer" },
+        "g4_repeat_female": { "type": "integer" },
+        "g5_promote_total": { "type": "integer" },
+        "g5_promote_female": { "type": "integer" },
+        "g5_repeat_total": { "type": "integer" },
+        "g5_repeat_female": { "type": "integer" },
+        "g6_promote_total": { "type": "integer" },
+        "g6_promote_female": { "type": "integer" },
+        "g6_repeat_total": { "type": "integer" },
+        "g6_repeat_female": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "ownerId",
+        "reportId",
+        "ageId",
+        "g1_new_total",
+        "g1_new_female",
+        "g1_repeat_total",
+        "g1_repeat_female",
+        "g2_promote_total",
+        "g2_promote_female",
+        "g2_repeat_total",
+        "g2_repeat_female",
+        "g3_promote_total",
+        "g3_promote_female",
+        "g3_repeat_total",
+        "g3_repeat_female",
+        "g4_promote_total",
+        "g4_promote_female",
+        "g4_repeat_total",
+        "g4_repeat_female",
+        "g5_promote_total",
+        "g5_promote_female",
+        "g5_repeat_total",
+        "g5_repeat_female",
+        "g6_promote_total",
+        "g6_promote_female",
+        "g6_repeat_total",
+        "g6_repeat_female",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "SpecialNeedsReport": {
+      "title": "Special Needs Report",
+      "description": "Parent metadata document for Table 2.(kh1) Disabled, Health-Challenged, and Vulnerable Students.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "academicYear": {
+          "type": "string",
+          "minLength": 9,
+          "maxLength": 20,
+          "pattern": "^[0-9]{4}-[0-9]{4}$"
+        },
+        "schoolName": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 150
+        },
+        "rowCount": {
+          "type": "integer",
+          "description": "Fixed number of editable category rows (20)."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["ownerId", "academicYear", "schoolName", "rowCount", "createdAt", "updatedAt"]
+    },
+    "SpecialNeedsCategoryRow": {
+      "title": "Special Needs Category Row",
+      "description": "Student counts for a single disability, health, difficulty, or welfare category across grade levels.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "reportId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "categoryId": {
+          "type": "string",
+          "enum": [
+            "disabled_movement",
+            "disabled_hearing",
+            "disabled_speaking",
+            "disabled_vision",
+            "disabled_internal",
+            "disabled_intellectual",
+            "disabled_mental",
+            "disabled_other",
+            "disabled_deaf_mute",
+            "health_nutrition",
+            "health_chronic",
+            "difficulty_migration",
+            "difficulty_orphan",
+            "difficulty_hiv",
+            "difficulty_family_violence",
+            "difficulty_labor",
+            "difficulty_poverty",
+            "difficulty_school_violence",
+            "intervention_welfare",
+            "support_welfare"
+          ]
+        },
+        "lower_total": { "type": "integer" },
+        "lower_female": { "type": "integer" },
+        "middle_total": { "type": "integer" },
+        "middle_female": { "type": "integer" },
+        "upper_total": { "type": "integer" },
+        "upper_female": { "type": "integer" },
+        "mixed_total": { "type": "integer" },
+        "mixed_female": { "type": "integer" },
+        "g1_total": { "type": "integer" },
+        "g1_female": { "type": "integer" },
+        "g2_total": { "type": "integer" },
+        "g2_female": { "type": "integer" },
+        "g3_total": { "type": "integer" },
+        "g3_female": { "type": "integer" },
+        "g4_total": { "type": "integer" },
+        "g4_female": { "type": "integer" },
+        "g5_total": { "type": "integer" },
+        "g5_female": { "type": "integer" },
+        "g6_total": { "type": "integer" },
+        "g6_female": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "ownerId",
+        "reportId",
+        "categoryId",
+        "lower_total",
+        "lower_female",
+        "middle_total",
+        "middle_female",
+        "upper_total",
+        "upper_female",
+        "mixed_total",
+        "mixed_female",
+        "g1_total",
+        "g1_female",
+        "g2_total",
+        "g2_female",
+        "g3_total",
+        "g3_female",
+        "g4_total",
+        "g4_female",
+        "g5_total",
+        "g5_female",
+        "g6_total",
+        "g6_female",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/private/profile": {
+      "schema": { "$ref": "#/entities/UserPrivateProfile" },
+      "description": "PII-isolated private profile for an authenticated school staff user."
+    },
+    "/users/{userId}/enrollmentReports/{reportId}": {
+      "schema": { "$ref": "#/entities/EnrollmentReport" },
+      "description": "Parent report metadata document for Table 2.(k2) enrollment statistics."
+    },
+    "/users/{userId}/enrollmentReports/{reportId}/ageRows/{ageId}": {
+      "schema": { "$ref": "#/entities/EnrollmentAgeRow" },
+      "description": "Per-age enrollment counts under a specific enrollment report."
+    },
+    "/users/{userId}/specialNeedsReports/{reportId}": {
+      "schema": { "$ref": "#/entities/SpecialNeedsReport" },
+      "description": "Parent report metadata document for Table 2.(kh1) special needs and vulnerable students."
+    },
+    "/users/{userId}/specialNeedsReports/{reportId}/categoryRows/{categoryId}": {
+      "schema": { "$ref": "#/entities/SpecialNeedsCategoryRow" },
+      "description": "Per-category student counts under a specific special needs report."
+    }
+  }
+}

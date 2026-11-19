@@ -1,0 +1,332 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Safety Net (Default Deny)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // === Primitive Helpers ===
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidCount(val) {
+      return val is int && val >= 0 && val <= 100000;
+    }
+
+    function isValidAcademicYear(val) {
+      return val is string && val.size() >= 9 && val.size() <= 20 && val.matches('^[0-9]{4}-[0-9]{4}$');
+    }
+
+    function isValidEmail(val) {
+      return val is string && val.size() >= 3 && val.size() <= 254 && val.matches('^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$');
+    }
+
+    // === Entity Validation Blueprints ===
+    function isValidUserPrivateProfile(data, userId) {
+      return data.keys().hasAll(['uid', 'email', 'displayName', 'schoolName', 'academicYear', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'email', 'displayName', 'schoolName', 'academicYear', 'createdAt', 'updatedAt'])
+        && isValidId(data.uid)
+        && data.uid == userId
+        && data.uid == request.auth.uid
+        && isValidEmail(data.email)
+        && data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 120
+        && data.schoolName is string && data.schoolName.size() <= 150
+        && isValidAcademicYear(data.academicYear)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidEnrollmentReport(data, userId) {
+      return data.keys().hasAll(['ownerId', 'academicYear', 'schoolName', 'rowCount', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['ownerId', 'academicYear', 'schoolName', 'rowCount', 'createdAt', 'updatedAt'])
+        && isValidId(data.ownerId)
+        && data.ownerId == userId
+        && data.ownerId == request.auth.uid
+        && isValidAcademicYear(data.academicYear)
+        && data.schoolName is string && data.schoolName.size() <= 150
+        && data.rowCount is int && data.rowCount == 10
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isAllowedAgeId(ageId) {
+      return ageId in ['age_6', 'age_7', 'age_8', 'age_9', 'age_10', 'age_11', 'age_12', 'age_13', 'age_14', 'age_15plus'];
+    }
+
+    function isValidEnrollmentAgeRow(data, userId, reportId, ageId) {
+      return data.keys().hasAll([
+          'ownerId', 'reportId', 'ageId',
+          'g1_new_total', 'g1_new_female', 'g1_repeat_total', 'g1_repeat_female',
+          'g2_promote_total', 'g2_promote_female', 'g2_repeat_total', 'g2_repeat_female',
+          'g3_promote_total', 'g3_promote_female', 'g3_repeat_total', 'g3_repeat_female',
+          'g4_promote_total', 'g4_promote_female', 'g4_repeat_total', 'g4_repeat_female',
+          'g5_promote_total', 'g5_promote_female', 'g5_repeat_total', 'g5_repeat_female',
+          'g6_promote_total', 'g6_promote_female', 'g6_repeat_total', 'g6_repeat_female',
+          'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'ownerId', 'reportId', 'ageId',
+          'g1_new_total', 'g1_new_female', 'g1_repeat_total', 'g1_repeat_female',
+          'g2_promote_total', 'g2_promote_female', 'g2_repeat_total', 'g2_repeat_female',
+          'g3_promote_total', 'g3_promote_female', 'g3_repeat_total', 'g3_repeat_female',
+          'g4_promote_total', 'g4_promote_female', 'g4_repeat_total', 'g4_repeat_female',
+          'g5_promote_total', 'g5_promote_female', 'g5_repeat_total', 'g5_repeat_female',
+          'g6_promote_total', 'g6_promote_female', 'g6_repeat_total', 'g6_repeat_female',
+          'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.ownerId) && data.ownerId == userId && data.ownerId == request.auth.uid
+        && isValidId(data.reportId) && data.reportId.size() <= 64 && data.reportId == reportId
+        && isValidId(data.ageId) && isAllowedAgeId(data.ageId) && data.ageId == ageId
+        && isValidCount(data.g1_new_total) && isValidCount(data.g1_new_female)
+        && isValidCount(data.g1_repeat_total) && isValidCount(data.g1_repeat_female)
+        && isValidCount(data.g2_promote_total) && isValidCount(data.g2_promote_female)
+        && isValidCount(data.g2_repeat_total) && isValidCount(data.g2_repeat_female)
+        && isValidCount(data.g3_promote_total) && isValidCount(data.g3_promote_female)
+        && isValidCount(data.g3_repeat_total) && isValidCount(data.g3_repeat_female)
+        && isValidCount(data.g4_promote_total) && isValidCount(data.g4_promote_female)
+        && isValidCount(data.g4_repeat_total) && isValidCount(data.g4_repeat_female)
+        && isValidCount(data.g5_promote_total) && isValidCount(data.g5_promote_female)
+        && isValidCount(data.g5_repeat_total) && isValidCount(data.g5_repeat_female)
+        && isValidCount(data.g6_promote_total) && isValidCount(data.g6_promote_female)
+        && isValidCount(data.g6_repeat_total) && isValidCount(data.g6_repeat_female)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidSpecialNeedsReport(data, userId) {
+      return data.keys().hasAll(['ownerId', 'academicYear', 'schoolName', 'rowCount', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['ownerId', 'academicYear', 'schoolName', 'rowCount', 'createdAt', 'updatedAt'])
+        && isValidId(data.ownerId)
+        && data.ownerId == userId
+        && data.ownerId == request.auth.uid
+        && isValidAcademicYear(data.academicYear)
+        && data.schoolName is string && data.schoolName.size() <= 150
+        && data.rowCount is int && data.rowCount == 20
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isAllowedCategoryId(categoryId) {
+      return categoryId in [
+        'disabled_movement', 'disabled_hearing', 'disabled_speaking', 'disabled_vision',
+        'disabled_internal', 'disabled_intellectual', 'disabled_mental', 'disabled_other', 'disabled_deaf_mute',
+        'health_nutrition', 'health_chronic',
+        'difficulty_migration', 'difficulty_orphan', 'difficulty_hiv', 'difficulty_family_violence',
+        'difficulty_labor', 'difficulty_poverty', 'difficulty_school_violence',
+        'intervention_welfare', 'support_welfare'
+      ];
+    }
+
+    function isValidSpecialNeedsCategoryRow(data, userId, reportId, categoryId) {
+      return data.keys().hasAll([
+          'ownerId', 'reportId', 'categoryId',
+          'lower_total', 'lower_female', 'middle_total', 'middle_female',
+          'upper_total', 'upper_female', 'mixed_total', 'mixed_female',
+          'g1_total', 'g1_female', 'g2_total', 'g2_female',
+          'g3_total', 'g3_female', 'g4_total', 'g4_female',
+          'g5_total', 'g5_female', 'g6_total', 'g6_female',
+          'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'ownerId', 'reportId', 'categoryId',
+          'lower_total', 'lower_female', 'middle_total', 'middle_female',
+          'upper_total', 'upper_female', 'mixed_total', 'mixed_female',
+          'g1_total', 'g1_female', 'g2_total', 'g2_female',
+          'g3_total', 'g3_female', 'g4_total', 'g4_female',
+          'g5_total', 'g5_female', 'g6_total', 'g6_female',
+          'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.ownerId) && data.ownerId == userId && data.ownerId == request.auth.uid
+        && isValidId(data.reportId) && data.reportId.size() <= 64 && data.reportId == reportId
+        && isValidId(data.categoryId) && isAllowedCategoryId(data.categoryId) && data.categoryId == categoryId
+        && isValidCount(data.lower_total) && isValidCount(data.lower_female)
+        && isValidCount(data.middle_total) && isValidCount(data.middle_female)
+        && isValidCount(data.upper_total) && isValidCount(data.upper_female)
+        && isValidCount(data.mixed_total) && isValidCount(data.mixed_female)
+        && isValidCount(data.g1_total) && isValidCount(data.g1_female)
+        && isValidCount(data.g2_total) && isValidCount(data.g2_female)
+        && isValidCount(data.g3_total) && isValidCount(data.g3_female)
+        && isValidCount(data.g4_total) && isValidCount(data.g4_female)
+        && isValidCount(data.g5_total) && isValidCount(data.g5_female)
+        && isValidCount(data.g6_total) && isValidCount(data.g6_female)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // === 1. PII-Isolated Private User Profile ===
+    match /users/{userId}/private/profile {
+      allow get: if isValidId(userId) && isOwner(userId);
+      allow create: if isVerifiedUser()
+        && isValidId(userId)
+        && isOwner(userId)
+        && isValidUserPrivateProfile(incoming(), userId)
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isVerifiedUser()
+        && isValidId(userId)
+        && isOwner(userId)
+        && isValidUserPrivateProfile(incoming(), userId)
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          incoming().diff(existing()).affectedKeys().hasOnly(['schoolName', 'academicYear', 'displayName', 'email', 'updatedAt'])
+        );
+      allow delete: if false;
+    }
+
+    // === 2. Enrollment Reports (Table 2.(k2)) ===
+    match /users/{userId}/enrollmentReports/{reportId} {
+      allow get: if isValidId(userId) && isValidId(reportId) && isOwner(userId);
+      allow list: if isValidId(userId) && isOwner(userId) && existing().ownerId == request.auth.uid;
+      allow create: if isVerifiedUser()
+        && isValidId(userId) && isValidId(reportId) && reportId.size() <= 64
+        && isOwner(userId)
+        && isValidEnrollmentReport(incoming(), userId)
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isVerifiedUser()
+        && isValidId(userId) && isValidId(reportId) && reportId.size() <= 64
+        && isOwner(userId)
+        && isValidEnrollmentReport(incoming(), userId)
+        && incoming().ownerId == existing().ownerId
+        && incoming().academicYear == existing().academicYear
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          incoming().diff(existing()).affectedKeys().hasOnly(['schoolName', 'rowCount', 'updatedAt'])
+        );
+      allow delete: if isVerifiedUser() && isValidId(userId) && isValidId(reportId) && isOwner(userId);
+
+      // Subcollection: Age Rows
+      match /ageRows/{ageId} {
+        allow get: if isValidId(userId) && isValidId(reportId) && isValidId(ageId)
+          && isOwner(userId)
+          && get(/databases/$(database)/documents/users/$(userId)/enrollmentReports/$(reportId)).data.ownerId == request.auth.uid;
+        allow list: if isValidId(userId) && isValidId(reportId)
+          && isOwner(userId)
+          && existing().ownerId == request.auth.uid;
+        allow create: if isVerifiedUser()
+          && isValidId(userId) && isValidId(reportId) && isValidId(ageId)
+          && isOwner(userId)
+          && isValidEnrollmentAgeRow(incoming(), userId, reportId, ageId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && existsAfter(/databases/$(database)/documents/users/$(userId)/enrollmentReports/$(reportId))
+          && getAfter(/databases/$(database)/documents/users/$(userId)/enrollmentReports/$(reportId)).data.ownerId == request.auth.uid;
+        allow update: if isVerifiedUser()
+          && isValidId(userId) && isValidId(reportId) && isValidId(ageId)
+          && isOwner(userId)
+          && isValidEnrollmentAgeRow(incoming(), userId, reportId, ageId)
+          && existing().ownerId == request.auth.uid
+          && incoming().ownerId == existing().ownerId
+          && incoming().reportId == existing().reportId
+          && incoming().ageId == existing().ageId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && existsAfter(/databases/$(database)/documents/users/$(userId)/enrollmentReports/$(reportId))
+          && getAfter(/databases/$(database)/documents/users/$(userId)/enrollmentReports/$(reportId)).data.ownerId == request.auth.uid
+          && (
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'g1_new_total', 'g1_new_female', 'g1_repeat_total', 'g1_repeat_female',
+              'g2_promote_total', 'g2_promote_female', 'g2_repeat_total', 'g2_repeat_female',
+              'g3_promote_total', 'g3_promote_female', 'g3_repeat_total', 'g3_repeat_female',
+              'g4_promote_total', 'g4_promote_female', 'g4_repeat_total', 'g4_repeat_female',
+              'g5_promote_total', 'g5_promote_female', 'g5_repeat_total', 'g5_repeat_female',
+              'g6_promote_total', 'g6_promote_female', 'g6_repeat_total', 'g6_repeat_female',
+              'updatedAt'
+            ])
+          );
+        allow delete: if isVerifiedUser() && isValidId(userId) && isValidId(reportId) && isValidId(ageId) && isOwner(userId);
+      }
+    }
+
+    // === 3. Special Needs Reports (Table 2.(kh1)) ===
+    match /users/{userId}/specialNeedsReports/{reportId} {
+      allow get: if isValidId(userId) && isValidId(reportId) && isOwner(userId);
+      allow list: if isValidId(userId) && isOwner(userId) && existing().ownerId == request.auth.uid;
+      allow create: if isVerifiedUser()
+        && isValidId(userId) && isValidId(reportId) && reportId.size() <= 64
+        && isOwner(userId)
+        && isValidSpecialNeedsReport(incoming(), userId)
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isVerifiedUser()
+        && isValidId(userId) && isValidId(reportId) && reportId.size() <= 64
+        && isOwner(userId)
+        && isValidSpecialNeedsReport(incoming(), userId)
+        && incoming().ownerId == existing().ownerId
+        && incoming().academicYear == existing().academicYear
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          incoming().diff(existing()).affectedKeys().hasOnly(['schoolName', 'rowCount', 'updatedAt'])
+        );
+      allow delete: if isVerifiedUser() && isValidId(userId) && isValidId(reportId) && isOwner(userId);
+
+      // Subcollection: Category Rows
+      match /categoryRows/{categoryId} {
+        allow get: if isValidId(userId) && isValidId(reportId) && isValidId(categoryId)
+          && isOwner(userId)
+          && get(/databases/$(database)/documents/users/$(userId)/specialNeedsReports/$(reportId)).data.ownerId == request.auth.uid;
+        allow list: if isValidId(userId) && isValidId(reportId)
+          && isOwner(userId)
+          && existing().ownerId == request.auth.uid;
+        allow create: if isVerifiedUser()
+          && isValidId(userId) && isValidId(reportId) && isValidId(categoryId)
+          && isOwner(userId)
+          && isValidSpecialNeedsCategoryRow(incoming(), userId, reportId, categoryId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && existsAfter(/databases/$(database)/documents/users/$(userId)/specialNeedsReports/$(reportId))
+          && getAfter(/databases/$(database)/documents/users/$(userId)/specialNeedsReports/$(reportId)).data.ownerId == request.auth.uid;
+        allow update: if isVerifiedUser()
+          && isValidId(userId) && isValidId(reportId) && isValidId(categoryId)
+          && isOwner(userId)
+          && isValidSpecialNeedsCategoryRow(incoming(), userId, reportId, categoryId)
+          && existing().ownerId == request.auth.uid
+          && incoming().ownerId == existing().ownerId
+          && incoming().reportId == existing().reportId
+          && incoming().categoryId == existing().categoryId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && existsAfter(/databases/$(database)/documents/users/$(userId)/specialNeedsReports/$(reportId))
+          && getAfter(/databases/$(database)/documents/users/$(userId)/specialNeedsReports/$(reportId)).data.ownerId == request.auth.uid
+          && (
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'lower_total', 'lower_female', 'middle_total', 'middle_female',
+              'upper_total', 'upper_female', 'mixed_total', 'mixed_female',
+              'g1_total', 'g1_female', 'g2_total', 'g2_female',
+              'g3_total', 'g3_female', 'g4_total', 'g4_female',
+              'g5_total', 'g5_female', 'g6_total', 'g6_female',
+              'updatedAt'
+            ])
+          );
+        allow delete: if isVerifiedUser() && isValidId(userId) && isValidId(reportId) && isValidId(categoryId) && isOwner(userId);
+      }
+    }
+  }
+}

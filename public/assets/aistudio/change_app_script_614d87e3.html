@@ -1,0 +1,1889 @@
+<!DOCTYPE html>
+<html lang="km">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Enrollment and Disabled Students Panel</title>
+		<script src="https://cdn.tailwindcss.com"></script>
+		<script
+			crossorigin
+			src="https://unpkg.com/react@18/umd/react.development.js"
+		></script>
+		<script
+			crossorigin
+			src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"
+		></script>
+		<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+	</head>
+	<body class="bg-gray-100">
+		<div id="root"></div>
+
+		<script type="text/babel">
+			const { useState, useEffect } = React;
+
+			// Panel component toggle open/close
+			const Panel = ({ title, children }) => {
+				const [open, setOpen] = useState(false);
+
+				return (
+					<div className="mb-6 border border-gray-300 rounded bg-white shadow">
+						<button
+							onClick={() => setOpen(!open)}
+							className="w-full flex justify-between items-center px-4 py-3 text-left text-blue-700 font-bold hover:bg-blue-100 rounded-t"
+						>
+							<span>{title}</span>
+							<span>{open ? "▲" : "▼"}</span>
+						</button>
+						{open && (
+							<div className="p-4 border-t border-gray-300">
+								{children}
+							</div>
+						)}
+					</div>
+				);
+			};
+
+			// === StudentEnrollmentTable full component ===
+			const StudentEnrollmentTable = () => {
+				const WEB_APP_URL =
+					"https://script.google.com/macros/s/AKfycbwqL7mQn1hprP8OktiWzCUqeRStOFWP0WygmTrMa7PPifTj7rfV_2rnEUKxia2x_fkb/exec";
+
+				const ages = [
+					"6",
+					"7",
+					"8",
+					"9",
+					"10",
+					"11",
+					"12",
+					"13",
+					"14",
+					"១៥+",
+				];
+
+				const orderedFields = [
+					"g1_new_total",
+					"g1_new_female",
+					"g1_repeat_total",
+					"g1_repeat_female",
+					"g2_promote_total",
+					"g2_promote_female",
+					"g2_repeat_total",
+					"g2_repeat_female",
+					"g3_promote_total",
+					"g3_promote_female",
+					"g3_repeat_total",
+					"g3_repeat_female",
+					"g4_promote_total",
+					"g4_promote_female",
+					"g4_repeat_total",
+					"g4_repeat_female",
+					"g5_promote_total",
+					"g5_promote_female",
+					"g5_repeat_total",
+					"g5_repeat_female",
+					"g6_promote_total",
+					"g6_promote_female",
+					"g6_repeat_total",
+					"g6_repeat_female",
+				];
+
+				const disabledStartByAge = {
+					6: 2,
+					7: 6,
+					8: 10,
+					9: 14,
+					10: 18,
+					11: 22,
+					12: Infinity,
+					13: Infinity,
+					14: Infinity,
+					"១៥+": Infinity,
+				};
+
+				const isDisabled = (age, field) => {
+					const start = disabledStartByAge[age] ?? Infinity;
+					const idx = orderedFields.indexOf(field);
+					return idx >= start;
+				};
+
+				const cellDisabledClass =
+					"bg-black pointer-events-none select-none";
+				const inputDisabledClass = "bg-black text-transparent";
+
+				const [data, setData] = useState({});
+				const [loading, setLoading] = useState(false);
+				const [saving, setSaving] = useState(false);
+				const [message, setMessage] = useState("");
+
+				useEffect(() => {
+					const initialData = {};
+					ages.forEach((age) => {
+						initialData[age] = {};
+						orderedFields.forEach((f) => (initialData[age][f] = 0));
+					});
+					setData(initialData);
+				}, []);
+
+				const loadFromGoogleSheets = async () => {
+					setLoading(true);
+					setMessage("កំពុងទាញទិន្នន័យ...");
+					try {
+						const response = await fetch(
+							`${WEB_APP_URL}?action=read`
+						);
+						const result = await response.json();
+						if (result.success && result.data) {
+							const newData = {};
+							result.data.forEach((row, index) => {
+								if (index < ages.length) {
+									const age = ages[index];
+									newData[age] = {
+										g1_new_total: parseInt(row[1]) || 0,
+										g1_new_female: parseInt(row[2]) || 0,
+										g1_repeat_total: parseInt(row[3]) || 0,
+										g1_repeat_female: parseInt(row[4]) || 0,
+										g2_promote_total: parseInt(row[5]) || 0,
+										g2_promote_female:
+											parseInt(row[6]) || 0,
+										g2_repeat_total: parseInt(row[7]) || 0,
+										g2_repeat_female: parseInt(row[8]) || 0,
+										g3_promote_total: parseInt(row[9]) || 0,
+										g3_promote_female:
+											parseInt(row[10]) || 0,
+										g3_repeat_total: parseInt(row[11]) || 0,
+										g3_repeat_female:
+											parseInt(row[12]) || 0,
+										g4_promote_total:
+											parseInt(row[13]) || 0,
+										g4_promote_female:
+											parseInt(row[14]) || 0,
+										g4_repeat_total: parseInt(row[15]) || 0,
+										g4_repeat_female:
+											parseInt(row[16]) || 0,
+										g5_promote_total:
+											parseInt(row[17]) || 0,
+										g5_promote_female:
+											parseInt(row[18]) || 0,
+										g5_repeat_total: parseInt(row[19]) || 0,
+										g5_repeat_female:
+											parseInt(row[20]) || 0,
+										g6_promote_total:
+											parseInt(row[21]) || 0,
+										g6_promote_female:
+											parseInt(row[22]) || 0,
+										g6_repeat_total: parseInt(row[23]) || 0,
+										g6_repeat_female:
+											parseInt(row[24]) || 0,
+									};
+								}
+							});
+							setData(newData);
+							setMessage("✅ ទាញទិន្នន័យបានជោគជ័យ!");
+						} else {
+							setMessage("❌ មិនអាចទាញទិន្នន័យបាន");
+						}
+						setTimeout(() => setMessage(""), 3000);
+					} catch (error) {
+						setMessage("❌ មានបញ្ហា: " + error.message);
+						setTimeout(() => setMessage(""), 3000);
+					} finally {
+						setLoading(false);
+					}
+				};
+
+				const saveToGoogleSheets = async () => {
+					setSaving(true);
+					setMessage("កំពុងរក្សាទុក...");
+					try {
+						const dataToSave = ages.map((age) => ({
+							age: age,
+							values: orderedFields.map((f) => data[age][f]),
+						}));
+						await fetch(WEB_APP_URL, {
+							method: "POST",
+							mode: "no-cors",
+							headers: { "Content-Type": "application/json" },
+							body: JSON.stringify({
+								action: "write",
+								data: dataToSave,
+							}),
+						});
+						setMessage("✅ រក្សាទុកបានជោគជ័យ!");
+						setTimeout(() => setMessage(""), 3000);
+					} catch (error) {
+						setMessage("✅ បានផ្ញើទិន្នន័យរួចរាល់!");
+						setTimeout(() => setMessage(""), 3000);
+					} finally {
+						setSaving(false);
+					}
+				};
+
+				const handleChange = (age, field, value) => {
+					setData((prev) => ({
+						...prev,
+						[age]: {
+							...prev[age],
+							[field]: value === "" ? 0 : parseInt(value) || 0,
+						},
+					}));
+				};
+
+				const calculateRowTotal = (age, type) => {
+					if (!data[age]) return 0;
+					if (type === "new_promote") {
+						return (
+							(data[age].g1_new_total || 0) +
+							(data[age].g2_promote_total || 0) +
+							(data[age].g3_promote_total || 0) +
+							(data[age].g4_promote_total || 0) +
+							(data[age].g5_promote_total || 0) +
+							(data[age].g6_promote_total || 0)
+						);
+					} else if (type === "new_promote_female") {
+						return (
+							(data[age].g1_new_female || 0) +
+							(data[age].g2_promote_female || 0) +
+							(data[age].g3_promote_female || 0) +
+							(data[age].g4_promote_female || 0) +
+							(data[age].g5_promote_female || 0) +
+							(data[age].g6_promote_female || 0)
+						);
+					} else if (type === "repeat") {
+						return (
+							(data[age].g1_repeat_total || 0) +
+							(data[age].g2_repeat_total || 0) +
+							(data[age].g3_repeat_total || 0) +
+							(data[age].g4_repeat_total || 0) +
+							(data[age].g5_repeat_total || 0) +
+							(data[age].g6_repeat_total || 0)
+						);
+					} else if (type === "repeat_female") {
+						return (
+							(data[age].g1_repeat_female || 0) +
+							(data[age].g2_repeat_female || 0) +
+							(data[age].g3_repeat_female || 0) +
+							(data[age].g4_repeat_female || 0) +
+							(data[age].g5_repeat_female || 0) +
+							(data[age].g6_repeat_female || 0)
+						);
+					}
+					return 0;
+				};
+
+				const calculateGradeTotal = (field) =>
+					ages.reduce(
+						(sum, age) => sum + (data[age]?.[field] || 0),
+						0
+					);
+
+				const downloadCSV = () => {
+					let csv = "\uFEFF";
+					csv +=
+						"២.(ក២)សិស្សថ្មី សិស្សឡើងថ្នាក់ និងសិស្សត្រួតថ្នាក់ ក្នុងឆ្នាំសិក្សា ២០២៥-២០២៦\n";
+					csv +=
+						"អាយុ(ឆ្នាំ),ថ្នាក់ទី ១,,,,,,,ថ្នាក់ទី ២,,,,,,,ថ្នាក់ទី ៣,,,,,,,ថ្នាក់ទី ៤,,,,,,,ថ្នាក់ទី ៥,,,,,,,ថ្នាក់ទី ៦,,,,,,,សរុបរួម,,,,,\n";
+					csv +=
+						",សិស្សថ្មី,,,សិស្សត្រួត,,,សិស្សឡើង,,,សិស្សត្រួត,,,សិស្សឡើង,,,សិស្សត្រួត,,,សិស្សឡើង,,,សិស្សត្រួត,,,សិស្សឡើង,,,សិស្សត្រួត,,,សិស្សថ្មី/ឡើង,,,សិស្សត្រួត,,\n";
+					csv +=
+						",សរុប,ស្រី,សរុប,ស្រី,សរុប,ស្រី,សរុប,ស្រី,សរុប,ស្រី,សរុប,ស្រី,សរុប,ស្រី,សរុប,ស្រី,សរុប,ស្រី,សរុប,ស្រី,សរុប,ស្រី,សរុប,ស្រី,សរុប,ស្រី\n";
+					ages.forEach((age) => {
+						csv += `${age},${data[age].g1_new_total},${data[age].g1_new_female},${data[age].g1_repeat_total},${data[age].g1_repeat_female},`;
+						csv += `${data[age].g2_promote_total},${data[age].g2_promote_female},${data[age].g2_repeat_total},${data[age].g2_repeat_female},`;
+						csv += `${data[age].g3_promote_total},${data[age].g3_promote_female},${data[age].g3_repeat_total},${data[age].g3_repeat_female},`;
+						csv += `${data[age].g4_promote_total},${data[age].g4_promote_female},${data[age].g4_repeat_total},${data[age].g4_repeat_female},`;
+						csv += `${data[age].g5_promote_total},${data[age].g5_promote_female},${data[age].g5_repeat_total},${data[age].g5_repeat_female},`;
+						csv += `${data[age].g6_promote_total},${data[age].g6_promote_female},${data[age].g6_repeat_total},${data[age].g6_repeat_female},`;
+						csv += `${calculateRowTotal(
+							age,
+							"new_promote"
+						)},${calculateRowTotal(age, "new_promote_female")},`;
+						csv += `${calculateRowTotal(
+							age,
+							"repeat"
+						)},${calculateRowTotal(age, "repeat_female")}\n`;
+					});
+					csv += `សរុប,${calculateGradeTotal(
+						"g1_new_total"
+					)},${calculateGradeTotal(
+						"g1_new_female"
+					)},${calculateGradeTotal(
+						"g1_repeat_total"
+					)},${calculateGradeTotal("g1_repeat_female")},`;
+					csv += `${calculateGradeTotal(
+						"g2_promote_total"
+					)},${calculateGradeTotal(
+						"g2_promote_female"
+					)},${calculateGradeTotal(
+						"g2_repeat_total"
+					)},${calculateGradeTotal("g2_repeat_female")},`;
+					csv += `${calculateGradeTotal(
+						"g3_promote_total"
+					)},${calculateGradeTotal(
+						"g3_promote_female"
+					)},${calculateGradeTotal(
+						"g3_repeat_total"
+					)},${calculateGradeTotal("g3_repeat_female")},`;
+					csv += `${calculateGradeTotal(
+						"g4_promote_total"
+					)},${calculateGradeTotal(
+						"g4_promote_female"
+					)},${calculateGradeTotal(
+						"g4_repeat_total"
+					)},${calculateGradeTotal("g4_repeat_female")},`;
+					csv += `${calculateGradeTotal(
+						"g5_promote_total"
+					)},${calculateGradeTotal(
+						"g5_promote_female"
+					)},${calculateGradeTotal(
+						"g5_repeat_total"
+					)},${calculateGradeTotal("g5_repeat_female")},`;
+					csv += `${calculateGradeTotal(
+						"g6_promote_total"
+					)},${calculateGradeTotal(
+						"g6_promote_female"
+					)},${calculateGradeTotal(
+						"g6_repeat_total"
+					)},${calculateGradeTotal("g6_repeat_female")},`;
+					csv += `${ages.reduce(
+						(sum, age) =>
+							sum + calculateRowTotal(age, "new_promote"),
+						0
+					)},${ages.reduce(
+						(sum, age) =>
+							sum + calculateRowTotal(age, "new_promote_female"),
+						0
+					)},${ages.reduce(
+						(sum, age) => sum + calculateRowTotal(age, "repeat"),
+						0
+					)},${ages.reduce(
+						(sum, age) =>
+							sum + calculateRowTotal(age, "repeat_female"),
+						0
+					)}\n`;
+
+					const blob = new Blob([csv], {
+						type: "text/csv;charset=utf-8;",
+					});
+					const link = document.createElement("a");
+					link.href = URL.createObjectURL(blob);
+					link.download = "Student_Enrollment_2025-2026.csv";
+					link.click();
+					URL.revokeObjectURL(link.href);
+				};
+
+				const CellInput = ({ age, field, value, onChange }) => {
+					const disabled = isDisabled(age, field);
+					return (
+						<td
+							className={`border border-gray-300 p-0 ${
+								disabled ? cellDisabledClass : ""
+							}`}
+						>
+							<input
+								type="number"
+								className={`w-full p-1 text-center text-xs ${
+									disabled ? inputDisabledClass : "bg-white"
+								}`}
+								value={value ?? ""}
+								onChange={(e) => onChange(e.target.value)}
+								disabled={disabled}
+								tabIndex={disabled ? -1 : 0}
+								min={0}
+							/>
+						</td>
+					);
+				};
+
+				return (
+					<div className="p-4 bg-gray-50 min-h-screen">
+						<div className="max-w-full mx-auto bg-white rounded-lg shadow-lg p-4">
+							<div className="flex justify-between items-center mb-4 flex-wrap gap-2">
+								<h2 className="text-lg font-bold text-gray-800">
+									២.(ក២)សិស្សថ្មី សិស្សឡើងថ្នាក់
+									និងសិស្សត្រួតថ្នាក់ ២០២៥-២០២៦
+								</h2>
+								<div className="flex gap-2">
+									<button
+										onClick={loadFromGoogleSheets}
+										disabled={loading}
+										className="flex items-center gap-2 bg-blue-600 text-white px-3 py-2 rounded text-sm hover:bg-blue-700 disabled:bg-gray-400"
+									>
+										{loading
+											? "កំពុងទាញ..."
+											: "ទាញទិន្នន័យ"}
+									</button>
+									<button
+										onClick={saveToGoogleSheets}
+										disabled={saving}
+										className="flex items-center gap-2 bg-green-600 text-white px-3 py-2 rounded text-sm hover:bg-green-700 disabled:bg-gray-400"
+									>
+										{saving
+											? "កំពុងរក្សាទុក..."
+											: "រក្សាទុក"}
+									</button>
+									<button
+										onClick={downloadCSV}
+										className="flex items-center gap-2 bg-purple-600 text-white px-3 py-2 rounded text-sm hover:bg-purple-700"
+									>
+										CSV
+									</button>
+								</div>
+							</div>
+
+							{message && (
+								<div
+									className={`mb-3 p-2 rounded text-sm ${
+										message.includes("✅")
+											? "bg-green-100 text-green-800"
+											: "bg-red-100 text-red-800"
+									}`}
+								>
+									{message}
+								</div>
+							)}
+
+							<div className="overflow-x-auto">
+								<table className="w-full border-collapse border border-gray-300 text-xs">
+									<thead>
+										<tr className="bg-blue-100">
+											<th
+												rowSpan="3"
+												className="border border-gray-300 p-2 min-w-16"
+											>
+												អាយុ
+											</th>
+											<th
+												colSpan="4"
+												className="border border-gray-300 p-2"
+											>
+												ថ្នាក់ទី ១
+											</th>
+											<th
+												colSpan="4"
+												className="border border-gray-300 p-2"
+											>
+												ថ្នាក់ទី ២
+											</th>
+											<th
+												colSpan="4"
+												className="border border-gray-300 p-2"
+											>
+												ថ្នាក់ទី ៣
+											</th>
+											<th
+												colSpan="4"
+												className="border border-gray-300 p-2"
+											>
+												ថ្នាក់ទី ៤
+											</th>
+											<th
+												colSpan="4"
+												className="border border-gray-300 p-2"
+											>
+												ថ្នាក់ទី ៥
+											</th>
+											<th
+												colSpan="4"
+												className="border border-gray-300 p-2"
+											>
+												ថ្នាក់ទី ៦
+											</th>
+											<th
+												colSpan="4"
+												className="border border-gray-300 p-2 bg-green-50"
+											>
+												សរុបរួម
+											</th>
+										</tr>
+										<tr className="bg-blue-50">
+											<th
+												colSpan="2"
+												className="border border-gray-300 p-1"
+											>
+												ថ្មី
+											</th>
+											<th
+												colSpan="2"
+												className="border border-gray-300 p-1"
+											>
+												ត្រួត
+											</th>
+
+											<th
+												colSpan="2"
+												className="border border-gray-300 p-1"
+											>
+												ឡើង
+											</th>
+											<th
+												colSpan="2"
+												className="border border-gray-300 p-1"
+											>
+												ត្រួត
+											</th>
+
+											<th
+												colSpan="2"
+												className="border border-gray-300 p-1"
+											>
+												ឡើង
+											</th>
+											<th
+												colSpan="2"
+												className="border border-gray-300 p-1"
+											>
+												ត្រួត
+											</th>
+
+											<th
+												colSpan="2"
+												className="border border-gray-300 p-1"
+											>
+												ឡើង
+											</th>
+											<th
+												colSpan="2"
+												className="border border-gray-300 p-1"
+											>
+												ត្រួត
+											</th>
+
+											<th
+												colSpan="2"
+												className="border border-gray-300 p-1"
+											>
+												ឡើង
+											</th>
+											<th
+												colSpan="2"
+												className="border border-gray-300 p-1"
+											>
+												ត្រួត
+											</th>
+
+											<th
+												colSpan="2"
+												className="border border-gray-300 p-1"
+											>
+												ឡើង
+											</th>
+											<th
+												colSpan="2"
+												className="border border-gray-300 p-1"
+											>
+												ត្រួត
+											</th>
+
+											<th
+												colSpan="2"
+												className="border border-gray-300 p-1 bg-green-50"
+											>
+												ថ្មី/ឡើង
+											</th>
+											<th
+												colSpan="2"
+												className="border border-gray-300 p-1 bg-green-50"
+											>
+												ត្រួត
+											</th>
+										</tr>
+										<tr className="bg-blue-50">
+											{[...Array(14)].map((_, i) => (
+												<React.Fragment key={i}>
+													<th className="border border-gray-300 p-1">
+														សរុប
+													</th>
+													<th className="border border-gray-300 p-1">
+														ស្រី
+													</th>
+												</React.Fragment>
+											))}
+										</tr>
+									</thead>
+									<tbody>
+										{ages.map((age) => (
+											<tr
+												key={age}
+												className="hover:bg-gray-50"
+											>
+												<td className="border border-gray-300 p-1 font-semibold text-center">
+													{age}
+												</td>
+
+												{/* Grade 1 */}
+												<CellInput
+													age={age}
+													field="g1_new_total"
+													value={
+														data[age]?.g1_new_total
+													}
+													onChange={(v) =>
+														handleChange(
+															age,
+															"g1_new_total",
+															v
+														)
+													}
+												/>
+												<CellInput
+													age={age}
+													field="g1_new_female"
+													value={
+														data[age]?.g1_new_female
+													}
+													onChange={(v) =>
+														handleChange(
+															age,
+															"g1_new_female",
+															v
+														)
+													}
+												/>
+												<CellInput
+													age={age}
+													field="g1_repeat_total"
+													value={
+														data[age]
+															?.g1_repeat_total
+													}
+													onChange={(v) =>
+														handleChange(
+															age,
+															"g1_repeat_total",
+															v
+														)
+													}
+												/>
+												<CellInput
+													age={age}
+													field="g1_repeat_female"
+													value={
+														data[age]
+															?.g1_repeat_female
+													}
+													onChange={(v) =>
+														handleChange(
+															age,
+															"g1_repeat_female",
+															v
+														)
+													}
+												/>
+
+												{/* Grade 2 */}
+												<CellInput
+													age={age}
+													field="g2_promote_total"
+													value={
+														data[age]
+															?.g2_promote_total
+													}
+													onChange={(v) =>
+														handleChange(
+															age,
+															"g2_promote_total",
+															v
+														)
+													}
+												/>
+												<CellInput
+													age={age}
+													field="g2_promote_female"
+													value={
+														data[age]
+															?.g2_promote_female
+													}
+													onChange={(v) =>
+														handleChange(
+															age,
+															"g2_promote_female",
+															v
+														)
+													}
+												/>
+												<CellInput
+													age={age}
+													field="g2_repeat_total"
+													value={
+														data[age]
+															?.g2_repeat_total
+													}
+													onChange={(v) =>
+														handleChange(
+															age,
+															"g2_repeat_total",
+															v
+														)
+													}
+												/>
+												<CellInput
+													age={age}
+													field="g2_repeat_female"
+													value={
+														data[age]
+															?.g2_repeat_female
+													}
+													onChange={(v) =>
+														handleChange(
+															age,
+															"g2_repeat_female",
+															v
+														)
+													}
+												/>
+
+												{/* Grade 3 */}
+												<CellInput
+													age={age}
+													field="g3_promote_total"
+													value={
+														data[age]
+															?.g3_promote_total
+													}
+													onChange={(v) =>
+														handleChange(
+															age,
+															"g3_promote_total",
+															v
+														)
+													}
+												/>
+												<CellInput
+													age={age}
+													field="g3_promote_female"
+													value={
+														data[age]
+															?.g3_promote_female
+													}
+													onChange={(v) =>
+														handleChange(
+															age,
+															"g3_promote_female",
+															v
+														)
+													}
+												/>
+												<CellInput
+													age={age}
+													field="g3_repeat_total"
+													value={
+														data[age]
+															?.g3_repeat_total
+													}
+													onChange={(v) =>
+														handleChange(
+															age,
+															"g3_repeat_total",
+															v
+														)
+													}
+												/>
+												<CellInput
+													age={age}
+													field="g3_repeat_female"
+													value={
+														data[age]
+															?.g3_repeat_female
+													}
+													onChange={(v) =>
+														handleChange(
+															age,
+															"g3_repeat_female",
+															v
+														)
+													}
+												/>
+
+												{/* Grade 4 */}
+												<CellInput
+													age={age}
+													field="g4_promote_total"
+													value={
+														data[age]
+															?.g4_promote_total
+													}
+													onChange={(v) =>
+														handleChange(
+															age,
+															"g4_promote_total",
+															v
+														)
+													}
+												/>
+												<CellInput
+													age={age}
+													field="g4_promote_female"
+													value={
+														data[age]
+															?.g4_promote_female
+													}
+													onChange={(v) =>
+														handleChange(
+															age,
+															"g4_promote_female",
+															v
+														)
+													}
+												/>
+												<CellInput
+													age={age}
+													field="g4_repeat_total"
+													value={
+														data[age]
+															?.g4_repeat_total
+													}
+													onChange={(v) =>
+														handleChange(
+															age,
+															"g4_repeat_total",
+															v
+														)
+													}
+												/>
+												<CellInput
+													age={age}
+													field="g4_repeat_female"
+													value={
+														data[age]
+															?.g4_repeat_female
+													}
+													onChange={(v) =>
+														handleChange(
+															age,
+															"g4_repeat_female",
+															v
+														)
+													}
+												/>
+
+												{/* Grade 5 */}
+												<CellInput
+													age={age}
+													field="g5_promote_total"
+													value={
+														data[age]
+															?.g5_promote_total
+													}
+													onChange={(v) =>
+														handleChange(
+															age,
+															"g5_promote_total",
+															v
+														)
+													}
+												/>
+												<CellInput
+													age={age}
+													field="g5_promote_female"
+													value={
+														data[age]
+															?.g5_promote_female
+													}
+													onChange={(v) =>
+														handleChange(
+															age,
+															"g5_promote_female",
+															v
+														)
+													}
+												/>
+												<CellInput
+													age={age}
+													field="g5_repeat_total"
+													value={
+														data[age]
+															?.g5_repeat_total
+													}
+													onChange={(v) =>
+														handleChange(
+															age,
+															"g5_repeat_total",
+															v
+														)
+													}
+												/>
+												<CellInput
+													age={age}
+													field="g5_repeat_female"
+													value={
+														data[age]
+															?.g5_repeat_female
+													}
+													onChange={(v) =>
+														handleChange(
+															age,
+															"g5_repeat_female",
+															v
+														)
+													}
+												/>
+
+												{/* Grade 6 */}
+												<CellInput
+													age={age}
+													field="g6_promote_total"
+													value={
+														data[age]
+															?.g6_promote_total
+													}
+													onChange={(v) =>
+														handleChange(
+															age,
+															"g6_promote_total",
+															v
+														)
+													}
+												/>
+												<CellInput
+													age={age}
+													field="g6_promote_female"
+													value={
+														data[age]
+															?.g6_promote_female
+													}
+													onChange={(v) =>
+														handleChange(
+															age,
+															"g6_promote_female",
+															v
+														)
+													}
+												/>
+												<CellInput
+													age={age}
+													field="g6_repeat_total"
+													value={
+														data[age]
+															?.g6_repeat_total
+													}
+													onChange={(v) =>
+														handleChange(
+															age,
+															"g6_repeat_total",
+															v
+														)
+													}
+												/>
+												<CellInput
+													age={age}
+													field="g6_repeat_female"
+													value={
+														data[age]
+															?.g6_repeat_female
+													}
+													onChange={(v) =>
+														handleChange(
+															age,
+															"g6_repeat_female",
+															v
+														)
+													}
+												/>
+
+												{/* Combined totals */}
+												<td className="border border-gray-300 p-1 text-center bg-green-50 font-semibold text-xs">
+													{calculateRowTotal(
+														age,
+														"new_promote"
+													)}
+												</td>
+												<td className="border border-gray-300 p-1 text-center bg-green-50 font-semibold text-xs">
+													{calculateRowTotal(
+														age,
+														"new_promote_female"
+													)}
+												</td>
+												<td className="border border-gray-300 p-1 text-center bg-green-50 font-semibold text-xs">
+													{calculateRowTotal(
+														age,
+														"repeat"
+													)}
+												</td>
+												<td className="border border-gray-300 p-1 text-center bg-green-50 font-semibold text-xs">
+													{calculateRowTotal(
+														age,
+														"repeat_female"
+													)}
+												</td>
+											</tr>
+										))}
+										<tr className="bg-yellow-100 font-bold">
+											<td className="border border-gray-300 p-1 text-center text-xs">
+												សរុប
+											</td>
+											<td className="border border-gray-300 p-1 text-center text-xs">
+												{calculateGradeTotal(
+													"g1_new_total"
+												)}
+											</td>
+											<td className="border border-gray-300 p-1 text-center text-xs">
+												{calculateGradeTotal(
+													"g1_new_female"
+												)}
+											</td>
+											<td className="border border-gray-300 p-1 text-center text-xs">
+												{calculateGradeTotal(
+													"g1_repeat_total"
+												)}
+											</td>
+											<td className="border border-gray-300 p-1 text-center text-xs">
+												{calculateGradeTotal(
+													"g1_repeat_female"
+												)}
+											</td>
+
+											<td className="border border-gray-300 p-1 text-center text-xs">
+												{calculateGradeTotal(
+													"g2_promote_total"
+												)}
+											</td>
+											<td className="border border-gray-300 p-1 text-center text-xs">
+												{calculateGradeTotal(
+													"g2_promote_female"
+												)}
+											</td>
+											<td className="border border-gray-300 p-1 text-center text-xs">
+												{calculateGradeTotal(
+													"g2_repeat_total"
+												)}
+											</td>
+											<td className="border border-gray-300 p-1 text-center text-xs">
+												{calculateGradeTotal(
+													"g2_repeat_female"
+												)}
+											</td>
+
+											<td className="border border-gray-300 p-1 text-center text-xs">
+												{calculateGradeTotal(
+													"g3_promote_total"
+												)}
+											</td>
+											<td className="border border-gray-300 p-1 text-center text-xs">
+												{calculateGradeTotal(
+													"g3_promote_female"
+												)}
+											</td>
+											<td className="border border-gray-300 p-1 text-center text-xs">
+												{calculateGradeTotal(
+													"g3_repeat_total"
+												)}
+											</td>
+											<td className="border border-gray-300 p-1 text-center text-xs">
+												{calculateGradeTotal(
+													"g3_repeat_female"
+												)}
+											</td>
+
+											<td className="border border-gray-300 p-1 text-center text-xs">
+												{calculateGradeTotal(
+													"g4_promote_total"
+												)}
+											</td>
+											<td className="border border-gray-300 p-1 text-center text-xs">
+												{calculateGradeTotal(
+													"g4_promote_female"
+												)}
+											</td>
+											<td className="border border-gray-300 p-1 text-center text-xs">
+												{calculateGradeTotal(
+													"g4_repeat_total"
+												)}
+											</td>
+											<td className="border border-gray-300 p-1 text-center text-xs">
+												{calculateGradeTotal(
+													"g4_repeat_female"
+												)}
+											</td>
+
+											<td className="border border-gray-300 p-1 text-center text-xs">
+												{calculateGradeTotal(
+													"g5_promote_total"
+												)}
+											</td>
+											<td className="border border-gray-300 p-1 text-center text-xs">
+												{calculateGradeTotal(
+													"g5_promote_female"
+												)}
+											</td>
+											<td className="border border-gray-300 p-1 text-center text-xs">
+												{calculateGradeTotal(
+													"g5_repeat_total"
+												)}
+											</td>
+											<td className="border border-gray-300 p-1 text-center text-xs">
+												{calculateGradeTotal(
+													"g5_repeat_female"
+												)}
+											</td>
+
+											<td className="border border-gray-300 p-1 text-center text-xs">
+												{calculateGradeTotal(
+													"g6_promote_total"
+												)}
+											</td>
+											<td className="border border-gray-300 p-1 text-center text-xs">
+												{calculateGradeTotal(
+													"g6_promote_female"
+												)}
+											</td>
+											<td className="border border-gray-300 p-1 text-center text-xs">
+												{calculateGradeTotal(
+													"g6_repeat_total"
+												)}
+											</td>
+											<td className="border border-gray-300 p-1 text-center text-xs">
+												{calculateGradeTotal(
+													"g6_repeat_female"
+												)}
+											</td>
+
+											<td className="border border-gray-300 p-1 text-center bg-orange-100 text-xs">
+												{ages.reduce(
+													(sum, age) =>
+														sum +
+														calculateRowTotal(
+															age,
+															"new_promote"
+														),
+													0
+												)}
+											</td>
+											<td className="border border-gray-300 p-1 text-center bg-orange-100 text-xs">
+												{ages.reduce(
+													(sum, age) =>
+														sum +
+														calculateRowTotal(
+															age,
+															"new_promote_female"
+														),
+													0
+												)}
+											</td>
+											<td className="border border-gray-300 p-1 text-center bg-orange-100 text-xs">
+												{ages.reduce(
+													(sum, age) =>
+														sum +
+														calculateRowTotal(
+															age,
+															"repeat"
+														),
+													0
+												)}
+											</td>
+											<td className="border border-gray-300 p-1 text-center bg-orange-100 text-xs">
+												{ages.reduce(
+													(sum, age) =>
+														sum +
+														calculateRowTotal(
+															age,
+															"repeat_female"
+														),
+													0
+												)}
+											</td>
+										</tr>
+									</tbody>
+								</table>
+							</div>
+
+							<div className="mt-3 text-xs text-gray-600 bg-blue-50 p-2 rounded">
+								<p className="font-semibold mb-1">
+									📌 របៀបប្រើប្រាស់:
+								</p>
+								<p>
+									1️⃣ ចុច "ទាញទិន្នន័យ" ដើម្បីទាញទិន្នន័យពី
+									Google Sheets
+								</p>
+								<p>
+									2️⃣ កែប្រែទិន្នន័យក្នុងតារាង
+									(សរុបគណនាស្វ័យប្រវត្តិ)
+								</p>
+								<p>
+									3️⃣ ចុច "រក្សាទុក" ដើម្បីរក្សាទុកទៅ Google
+									Sheets
+								</p>
+								<p>4️⃣ ចុច "CSV" ដើម្បីទាញយកឯកសារ</p>
+							</div>
+						</div>
+					</div>
+				);
+			};
+
+			// === DisabledStudentsTable full component ===
+			const WEB_APP_URL_DISABLED =
+				"https://script.google.com/macros/s/AKfycbyxyF8qBoEwjLXE2dRM0sQfsLXeaFo2vCEEiSZuKlDRfLjT8aOG5teD3XNg-DHPER0i/exec";
+
+			const categories = [
+				{ id: "disabled_header", label: "សិស្សពិការ", type: "header" },
+				{
+					id: "disabled_count",
+					label: "ចំនួនសិស្សពិការ*",
+					type: "total",
+				},
+				{ id: "disabled_type", label: "ប្រភេទពិការ**", type: "spec" },
+				{
+					id: "disabled_movement",
+					label: "     ពិបាកក្នុងការធ្វើចលនា",
+					type: "sub",
+					num: 1,
+				},
+				{
+					id: "disabled_hearing",
+					label: "     ពិបាកក្នុងការស្តាប់",
+					type: "sub",
+					num: 2,
+				},
+				{
+					id: "disabled_speaking",
+					label: "     ពិបាកក្នុងការនិយាយ",
+					type: "sub",
+					num: 3,
+				},
+				{
+					id: "disabled_vision",
+					label: "     ពិបាកក្នុងការមើល",
+					type: "sub",
+					num: 4,
+				},
+				{
+					id: "disabled_internal",
+					label: "     ពិការសរីរាង្គខាងក្នុង",
+					type: "sub",
+					num: 5,
+				},
+				{
+					id: "disabled_intellectual",
+					label: "     ពិការសតិបញ្ញា",
+					type: "sub",
+					num: 6,
+				},
+				{
+					id: "disabled_mental",
+					label: "     ពិបាកខាងផ្លូវចិត្ត",
+					type: "sub",
+					num: 7,
+				},
+				{
+					id: "disabled_other",
+					label: "     ពិការផ្សេងៗ (ក្រៅពីខាងលើ)",
+					type: "sub",
+					num: 8,
+				},
+				{
+					id: "disabled_deaf_mute",
+					label: "     ពិការគេ ថ្លង់",
+					type: "sub",
+					num: 9,
+				},
+				{
+					id: "health_main",
+					label: "សិស្សជួបការលំបាកផ្នែកសុខភាព",
+					type: "header",
+				},
+				{
+					id: "health_count",
+					label: " ចំនួនជួបការលំបាកផ្នែកសុខភាព*",
+					type: "total",
+				},
+				{
+					id: "health_type",
+					label: " ប្រភេទការលំបាកផ្នែកសុខភាព**",
+					type: "spec",
+				},
+				{
+					id: "health_nutrition",
+					label: "​     មានស្ថានភាពអាហារូបត្ថមធ្ងន់ធ្ងរ",
+					type: "sub",
+					num: 1,
+				},
+				{
+					id: "health_chronic",
+					label: "​     មានជម្ងឺប្រចាំកាយ",
+					type: "sub",
+					num: 2,
+				},
+				{
+					id: "difficulty_main",
+					label: "សិស្សជួបការលំបាក",
+					type: "header",
+				},
+				{
+					id: "difficulty_count",
+					label: "ចំនួនសិស្សជួបការលំបាក*",
+					type: "total",
+				},
+				{
+					id: "difficulty_type",
+					label: "ប្រភេទការលំបាក**",
+					type: "spec",
+				},
+				{
+					id: "difficulty_migration",
+					label: "មកពីគ្រួសារផ្លាស់ប្តូរទីលំនៅ",
+					type: "sub",
+					num: 1,
+				},
+				{
+					id: "difficulty_orphan",
+					label: "កុមារកំព្រា",
+					type: "sub",
+					num: 2,
+				},
+				{
+					id: "difficulty_hiv",
+					label: "កុមាររងគ្រោះដោយHIV/AIDS",
+					type: "sub",
+					num: 3,
+				},
+				{
+					id: "difficulty_family_violence",
+					label: "កុមាររងពើហិង្សាក្នុងគ្រួសារ(ផ្លូវកាយ ផ្លូវចិត្ត ផ្លូវភេទ និងការបោះបង់)",
+					type: "sub",
+					num: 4,
+				},
+				{
+					id: "difficulty_labor",
+					label: "កុមាររងការកេងប្រវ័ញ្ជពលកម្ម",
+					type: "sub",
+					num: 5,
+				},
+				{
+					id: "difficulty_poverty",
+					label: "កុមារដែលមកពីគ្រួសារក្រីក្រ",
+					type: "sub",
+					num: 6,
+				},
+				{
+					id: "difficulty_school_violence",
+					label: "កុមាររងពើហិង្សាក្នុងសាលា",
+					type: "sub",
+					num: 7,
+				},
+				{
+					id: "intervention_main",
+					label: "ចំនួនកុមារទទួលបានកិច្ចអន្តរាគមន៍ និងប្រឹក្សាយោបល់",
+					type: "header",
+				},
+				{
+					id: "intervention_welfare",
+					label: "ចំនួនសិស្សទទួលបានកិច្ចអន្តរគមន៍របស់សុខាភិបាល",
+					type: "sub",
+					num: 1,
+				},
+				{
+					id: "support_welfare",
+					label: "ចំនួនសិស្សទទួលបានកិច្ចគាំពារ និងប្រឹក្សាយោបល់ របស់សុខាភិបាល",
+					type: "sub",
+					num: 2,
+				},
+			];
+
+			const grades = [
+				{ id: "lower", label: "ថ្នាក់កម្រិតទាប" },
+				{ id: "middle", label: "ថ្នាក់កម្រិតមធ្យម" },
+				{ id: "upper", label: "ថ្នាក់កម្រិតខ្ពស់" },
+				{ id: "mixed", label: "ថ្នាក់កម្រិតចម្រុះ" },
+				{ id: "g1", label: "ថ្នាក់ទី១" },
+				{ id: "g2", label: "ថ្នាក់ទី២" },
+				{ id: "g3", label: "ថ្នាក់ទី៣" },
+				{ id: "g4", label: "ថ្នាក់ទី៤" },
+				{ id: "g5", label: "ថ្នាក់ទី៥" },
+				{ id: "g6", label: "ថ្នាក់ទី៦" },
+			];
+
+			function DisabledStudentsTable() {
+				const [data, setData] = useState({});
+				const [loading, setLoading] = useState(false);
+				const [saving, setSaving] = useState(false);
+				const [message, setMessage] = useState("");
+
+				useEffect(() => {
+					const initialData = {};
+					categories.forEach((cat) => {
+						initialData[cat.id] = {};
+						grades.forEach((grade) => {
+							initialData[cat.id][`${grade.id}_total`] = 0;
+							initialData[cat.id][`${grade.id}_female`] = 0;
+						});
+					});
+					setData(initialData);
+				}, []);
+
+				const handleChange = (categoryId, field, value) => {
+					setData((prev) => ({
+						...prev,
+						[categoryId]: {
+							...prev[categoryId],
+							[field]:
+								value === "" ? 0 : parseInt(value, 10) || 0,
+						},
+					}));
+				};
+
+				const isEditable = (cat) => {
+					return cat.type === "sub";
+				};
+
+				const getRowColor = (cat) => {
+					if (cat.type === "header") return "bg-blue-200";
+					if (cat.type === "total") return "bg-red-100";
+					if (cat.type === "spec") return "bg-orange-100";
+					return "hover:bg-gray-50";
+				};
+
+				const calculateRowTotal = (categoryId, type) => {
+					let total = 0;
+					grades.forEach((grade) => {
+						const field =
+							type === "total"
+								? `${grade.id}_total`
+								: `${grade.id}_female`;
+						total += data[categoryId]?.[field] || 0;
+					});
+					return total;
+				};
+
+				const calculateTotalRowSum = (totalCatId, gradeId, type) => {
+					let sum = 0;
+					const currentIndex = categories.findIndex(
+						(c) => c.id === totalCatId
+					);
+
+					for (let i = currentIndex + 1; i < categories.length; i++) {
+						const cat = categories[i];
+						if (cat.type === "total" || cat.type === "header")
+							break;
+						if (cat.type === "spec") continue;
+						if (cat.type === "sub" && cat.num) {
+							const field = `${gradeId}_${type}`;
+							sum += data[cat.id]?.[field] || 0;
+						}
+					}
+					return sum;
+				};
+
+				const calculateTotalRowGrandTotal = (totalCatId, type) => {
+					let sum = 0;
+					const currentIndex = categories.findIndex(
+						(c) => c.id === totalCatId
+					);
+
+					for (let i = currentIndex + 1; i < categories.length; i++) {
+						const cat = categories[i];
+						if (cat.type === "total" || cat.type === "header")
+							break;
+						if (cat.type === "spec") continue;
+						if (cat.type === "sub" && cat.num) {
+							sum += calculateRowTotal(cat.id, type);
+						}
+					}
+					return sum;
+				};
+
+				const downloadCSV = () => {
+					let csv = "\uFEFF";
+					csv +=
+						"២.(ខ១) សិស្សពិការ សិស្សជួបការលំបាកផ្នែកសុខភាព និងសិស្សជួបការលំបាក\n";
+					csv += "បរិយាយ";
+
+					grades.forEach((grade) => {
+						csv += `,${grade.label} សរុប,${grade.label} ស្រី`;
+					});
+					csv += ",សរុប សរុប,សរុប ស្រី\n";
+
+					categories.forEach((cat) => {
+						csv += cat.label;
+						grades.forEach((grade) => {
+							const totalVal =
+								cat.type === "total"
+									? calculateTotalRowSum(
+											cat.id,
+											grade.id,
+											"total"
+									  )
+									: data[cat.id]?.[`${grade.id}_total`] || 0;
+							const femaleVal =
+								cat.type === "total"
+									? calculateTotalRowSum(
+											cat.id,
+											grade.id,
+											"female"
+									  )
+									: data[cat.id]?.[`${grade.id}_female`] || 0;
+							csv += `,${totalVal},${femaleVal}`;
+						});
+						const grandTotal =
+							cat.type === "total"
+								? calculateTotalRowGrandTotal(cat.id, "total")
+								: calculateRowTotal(cat.id, "total");
+						const grandFemale =
+							cat.type === "total"
+								? calculateTotalRowGrandTotal(cat.id, "female")
+								: calculateRowTotal(cat.id, "female");
+						csv += `,${grandTotal},${grandFemale}\n`;
+					});
+
+					const blob = new Blob([csv], {
+						type: "text/csv;charset=utf-8;",
+					});
+					const link = document.createElement("a");
+					link.href = URL.createObjectURL(blob);
+					link.download = "Disabled_Students_Table.csv";
+					link.click();
+					URL.revokeObjectURL(link.href);
+				};
+
+				const loadFromGoogleSheets = async () => {
+					setLoading(true);
+					setMessage("កំពុងទាញទិន្នន័យ…");
+					try {
+						const response = await fetch(
+							`${WEB_APP_URL_DISABLED}?action=read&sheet=disabled`
+						);
+						const result = await response.json();
+
+						if (result.success && result.data) {
+							const newData = {};
+							result.data.forEach((row, index) => {
+								if (index < categories.length) {
+									const catId = categories[index].id;
+									newData[catId] = {};
+									grades.forEach((grade, gradeIndex) => {
+										newData[catId][`${grade.id}_total`] =
+											parseInt(
+												row[gradeIndex * 2 + 1],
+												10
+											) || 0;
+										newData[catId][`${grade.id}_female`] =
+											parseInt(
+												row[gradeIndex * 2 + 2],
+												10
+											) || 0;
+									});
+								}
+							});
+							setData(newData);
+							setMessage("✅ ទាញទិន្នន័យបានជោគជ័យ!");
+						} else {
+							setMessage("❌ មិនអាចទាញទិន្នន័យបាន");
+						}
+						setTimeout(() => setMessage(""), 3000);
+					} catch (error) {
+						setMessage(
+							"❌ មានបញ្ហា: " + (error?.message || "មិនស្គាល់")
+						);
+						setTimeout(() => setMessage(""), 3000);
+					} finally {
+						setLoading(false);
+					}
+				};
+
+				const saveToGoogleSheets = async () => {
+					setSaving(true);
+					setMessage("កំពុងរក្សាទុក…");
+					try {
+						const dataToSave = categories.map((cat) => {
+							const values = [];
+							grades.forEach((grade) => {
+								values.push(
+									data[cat.id]?.[`${grade.id}_total`] || 0
+								);
+								values.push(
+									data[cat.id]?.[`${grade.id}_female`] || 0
+								);
+							});
+							return {
+								category: cat.label,
+								values: values,
+							};
+						});
+
+						await fetch(WEB_APP_URL_DISABLED, {
+							method: "POST",
+							mode: "no-cors",
+							headers: { "Content-Type": "application/json" },
+							body: JSON.stringify({
+								action: "write",
+								sheet: "disabled",
+								data: dataToSave,
+							}),
+						});
+
+						setMessage("✅ រក្សាទុកបានជោគជ័យ!");
+						setTimeout(() => setMessage(""), 3000);
+					} catch (error) {
+						setMessage("✅ បានផ្ញើទិន្នន័យរួចរាល់!");
+						setTimeout(() => setMessage(""), 3000);
+					} finally {
+						setSaving(false);
+					}
+				};
+
+				return (
+					<div className="max-w-full overflow-x-auto">
+						<div className="mb-4 flex justify-between items-center flex-wrap gap-2">
+							<div className="font-bold text-gray-800">
+								២.(ខ១) សិស្សពិការ សិស្សជួបការលំបាកផ្នែកសុខភាព
+								និងសិស្សជួបការលំបាក
+							</div>
+							<div className="flex gap-2">
+								<button
+									className="bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
+									disabled={loading}
+									onClick={loadFromGoogleSheets}
+								>
+									{loading ? "កំពុងទាញ…" : "ទាញទិន្នន័យ"}
+								</button>
+								<button
+									className="bg-green-600 text-white px-3 py-2 rounded hover:bg-green-700 disabled:bg-gray-400"
+									disabled={saving}
+									onClick={saveToGoogleSheets}
+								>
+									{saving ? "កំពុងរក្សាទុក…" : "រក្សាទុក"}
+								</button>
+								<button
+									className="bg-purple-600 text-white px-3 py-2 rounded hover:bg-purple-700"
+									onClick={downloadCSV}
+								>
+									CSV
+								</button>
+							</div>
+						</div>
+
+						{message && (
+							<div
+								className={`mb-4 p-2 text-sm rounded ${
+									message.includes("✅")
+										? "bg-green-100 text-green-800"
+										: "bg-red-100 text-red-800"
+								}`}
+							>
+								{message}
+							</div>
+						)}
+
+						<table className="border border-gray-400 border-collapse w-full text-xs">
+							<thead>
+								<tr className="bg-blue-100">
+									<th
+										rowSpan="2"
+										className="border border-gray-400 p-2 sticky left-0 bg-blue-100 z-10"
+									>
+										បរិយាយ
+									</th>
+									{grades.map((grade) => (
+										<th
+											key={grade.id}
+											colSpan="2"
+											className="border border-gray-400 p-2"
+										>
+											{grade.label}
+										</th>
+									))}
+									<th
+										colSpan="2"
+										className="border border-gray-400 p-2 bg-yellow-100"
+									>
+										សរុប
+									</th>
+								</tr>
+								<tr className="bg-blue-50">
+									{grades.map((grade) => (
+										<React.Fragment key={grade.id}>
+											<th className="border border-gray-400 p-1">
+												សរុប
+											</th>
+											<th className="border border-gray-400 p-1">
+												ស្រី
+											</th>
+										</React.Fragment>
+									))}
+									<th className="border border-gray-400 p-1 bg-yellow-50">
+										សរុប
+									</th>
+									<th className="border border-gray-400 p-1 bg-yellow-50">
+										ស្រី
+									</th>
+								</tr>
+							</thead>
+							<tbody>
+								{categories.map((cat) => (
+									<tr
+										key={cat.id}
+										className={getRowColor(cat)}
+									>
+										<td
+											className={`border border-gray-400 p-2 sticky left-0 z-20 font-semibold text-left ${getRowColor(
+												cat
+											)}`}
+										>
+											{cat.label}
+										</td>
+										{grades.map((grade) => (
+											<React.Fragment key={grade.id}>
+												<td className="border border-gray-400 p-0">
+													{cat.type === "header" ? (
+														<div className="w-full h-7 bg-blue-200"></div>
+													) : cat.type === "total" ? (
+														<div className="w-full p-1 text-center text-xs bg-red-100 font-bold">
+															{calculateTotalRowSum(
+																cat.id,
+																grade.id,
+																"total"
+															)}
+														</div>
+													) : (
+														<input
+															type="number"
+															min={0}
+															disabled={
+																!isEditable(cat)
+															}
+															value={
+																data[cat.id]?.[
+																	`${grade.id}_total`
+																] ?? ""
+															}
+															onChange={(e) =>
+																handleChange(
+																	cat.id,
+																	`${grade.id}_total`,
+																	e.target
+																		.value
+																)
+															}
+															className={`w-full p-1 text-center text-xs ${
+																!isEditable(cat)
+																	? "bg-gray-200 cursor-not-allowed"
+																	: ""
+															}`}
+														/>
+													)}
+												</td>
+												<td className="border border-gray-400 p-0">
+													{cat.type === "header" ? (
+														<div className="w-full h-7 bg-blue-200"></div>
+													) : cat.type === "total" ? (
+														<div className="w-full p-1 text-center text-xs bg-red-100 font-bold">
+															{calculateTotalRowSum(
+																cat.id,
+																grade.id,
+																"female"
+															)}
+														</div>
+													) : (
+														<input
+															type="number"
+															min={0}
+															disabled={
+																!isEditable(cat)
+															}
+															value={
+																data[cat.id]?.[
+																	`${grade.id}_female`
+																] ?? ""
+															}
+															onChange={(e) =>
+																handleChange(
+																	cat.id,
+																	`${grade.id}_female`,
+																	e.target
+																		.value
+																)
+															}
+															className={`w-full p-1 text-center text-xs ${
+																!isEditable(cat)
+																	? "bg-gray-200 cursor-not-allowed"
+																	: ""
+															}`}
+														/>
+													)}
+												</td>
+											</React.Fragment>
+										))}
+										<td className="border border-gray-400 p-1 text-center bg-yellow-200 font-bold cursor-not-allowed">
+											{cat.type === "total"
+												? calculateTotalRowGrandTotal(
+														cat.id,
+														"total"
+												  )
+												: cat.type === "header"
+												? ""
+												: calculateRowTotal(
+														cat.id,
+														"total"
+												  )}
+										</td>
+										<td className="border border-gray-400 p-1 text-center bg-yellow-200 font-bold cursor-not-allowed">
+											{cat.type === "total"
+												? calculateTotalRowGrandTotal(
+														cat.id,
+														"female"
+												  )
+												: cat.type === "header"
+												? ""
+												: calculateRowTotal(
+														cat.id,
+														"female"
+												  )}
+										</td>
+									</tr>
+								))}
+							</tbody>
+						</table>
+
+						<div className="mt-4 text-xs text-gray-600 bg-blue-50 p-2 rounded leading-tight">
+							<p className="font-semibold mb-1">📌 ចំណាំ:</p>
+							<p>
+								** ប្រភេទអាចមានច្រើនជាងចំនួនសរុប
+								(សិស្សម្នាក់អាចមានពិការច្រើនប្រភេទ)
+							</p>
+							<p className="mt-2 text-blue-600 font-semibold">
+								🔵 Rows ពណ៌ខៀវ (ចំណងជើងផ្នែក) - មិនបង្ហាញលេខ
+							</p>
+							<p className="text-red-600 font-semibold">
+								🔴 Rows ពណ៌ក្រហម (ចំនួនសរុប*) -
+								គណនាស្វ័យប្រវត្តិពី rows ខាងក្រោម
+							</p>
+							<p className="text-orange-600 font-semibold">
+								🟠 Rows ពណ៌ទឹកក្រូច (ប្រភេទ**) - បិទការបញ្ចូល
+							</p>
+							<p className="text-green-600">
+								✏️ អាចបញ្ចូលបានតែ rows ដែលមានលេខ (1-9) ប៉ុណ្ណោះ
+							</p>
+							<p className="mt-2 text-yellow-600 font-semibold">
+								🟡 Column សរុប (លឿងចាស់) គណនាដោយស្វ័យប្រវត្តិ
+							</p>
+						</div>
+					</div>
+				);
+			}
+
+			// add helper function for DisabledStudentsTable
+			function getRowColor(cat) {
+				if (cat.type === "header") return "bg-blue-200";
+				if (cat.type === "total") return "bg-red-100";
+				if (cat.type === "spec") return "bg-orange-100";
+				return "hover:bg-gray-50";
+			}
+
+			// === App component with two panels ===
+			const App = () => (
+				<div className="max-w-screen-xl mx-auto p-4">
+					<Panel title="២.(ក២) សិស្សថ្មី សិស្សឡើងថ្នាក់ និងសិស្សត្រួតថ្នាក់ ២០២៥-២០២៦">
+						<StudentEnrollmentTable />
+					</Panel>
+
+					<Panel title="២.(ខ១) សិស្សពិការ និងសិស្សជួបការលំបាក ផ្នែកសុខភាព និងសិស្សជួបការលំបាក">
+						<DisabledStudentsTable />
+					</Panel>
+				</div>
+			);
+
+			ReactDOM.createRoot(document.getElementById("root")).render(
+				<App />
+			);
+		</script>
+	</body>
+</html>
